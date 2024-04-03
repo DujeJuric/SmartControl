@@ -1,20 +1,31 @@
 import React from 'react'
 import { TouchableOpacity, Text, StyleSheet } from 'react-native'
+import { LinearGradient } from 'expo-linear-gradient'
 
-const CustomButton = ({ onPress, title }) => (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
-        <Text style={styles.buttonText}>{title}</Text>
-    </TouchableOpacity>
-)
+const CustomButton = ({ onPress, title, marginTop }) => {
+    return (
+        <TouchableOpacity style={marginTop ? [styles.container, { marginTop }] : styles.container} onPress={onPress}>
+            <LinearGradient
+                colors={['#FFD050', '#FF8F00']} // Light to dark orange colors
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.button}>
+                <Text style={styles.buttonText}>{title}</Text>
+            </LinearGradient>
+        </TouchableOpacity>
+    )
+}
 
 const styles = StyleSheet.create({
-    button: {
-        backgroundColor: '#FF7B00',
-        padding: 15,
+    container: {
         borderRadius: 30,
+        overflow: 'hidden', // Ensure that the gradient doesn't overflow the button container
+        width: '80%',
+    },
+    button: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
         alignItems: 'center',
-        justifyContent: 'center',
-        marginVertical: 10,
     },
     buttonText: {
         color: 'white',

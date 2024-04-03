@@ -5,8 +5,10 @@ from config.database import users_collection, devices_collection
 from schema.schemas import individual_serial_user, individual_serial_device, multiple_serial_users, multiple_serial_devices
 from bson import ObjectId
 from fastapi import HTTPException
+from auth import AuthHandler
 
 router = APIRouter()
+auth_handler = AuthHandler()
 
 ###USER ROUTES
 
@@ -17,11 +19,28 @@ async def get_users():
     return multiple_serial_users(users)
 
 # POST request to create a new user
-@router.post("/addUser")
+@router.post("/addUser", status_code=201)
 async def create_user(user: User):
+    if users_collection.find_one({"email": user.email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
     user = dict(user)
+    hashed_password = auth_handler.get_password_hash(user["password"])
+    user["password"] = hashed_password
     users_collection.insert_one(user)
     return individual_serial_user(user)
+
+# POST request to login a user
+@router.post("/login")
+async def login_user(user: User):
+    user = dict(user)
+    user_db = users_collection.find_one({"email": user["email"]})
+    if user_db is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not auth_handler.verify_password(user["password"], user_db["password"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = auth_handler.encode_token(str(user_db["_id"]))
+    return {"token": token}
+
 
 # GET request to get a single user
 @router.get("/getUser/{user_id}")

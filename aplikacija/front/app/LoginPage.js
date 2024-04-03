@@ -5,14 +5,12 @@ import CustomButton from './customButton'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faUser, faHouseSignal, faEnvelope, faKey } from '@fortawesome/free-solid-svg-icons'
 
-const RegistrationPage = () => {
+const LoginPage = () => {
     const router = useRouter()
     const [email, setEmail] = useState('')
-    const [fullName, setFullName] = useState('')
     const [password, setPassword] = useState('')
-    const [confirmPassword, setConfirmPassword] = useState('')
 
-    const handleRegister = () => {
+    const handleLogin = () => {
         router.navigate('main')
     }
 
@@ -41,7 +39,7 @@ const RegistrationPage = () => {
                 <Text style={styles.titleText}>Welcome to SmartControl.</Text>
             </View>
             <View style={styles.centerView}>
-                <Text style={styles.infoText}>Please register to continue:</Text>
+                <Text style={styles.infoText}>Please login to continue:</Text>
                 <View style={styles.inputField}>
                     <FontAwesomeIcon icon={faEnvelope} size={25} color="darkgray" />
                     <TextInput
@@ -49,16 +47,6 @@ const RegistrationPage = () => {
                         placeholder="Email"
                         value={email}
                         onChangeText={setEmail}
-                        placeholderTextColor="darkgray"
-                    />
-                </View>
-                <View style={styles.inputField}>
-                    <FontAwesomeIcon icon={faUser} size={25} color="darkgray" />
-                    <TextInput
-                        style={styles.inputText}
-                        placeholder="Full Name"
-                        value={fullName}
-                        onChangeText={setFullName}
                         placeholderTextColor="darkgray"
                     />
                 </View>
@@ -73,23 +61,12 @@ const RegistrationPage = () => {
                         placeholderTextColor="darkgray"
                     />
                 </View>
-                <View style={styles.inputField}>
-                    <FontAwesomeIcon icon={faKey} size={25} color="darkgray" />
-                    <TextInput
-                        style={[styles.inputText]}
-                        placeholder="Confirm Password"
-                        secureTextEntry
-                        value={confirmPassword}
-                        onChangeText={setConfirmPassword}
-                        placeholderTextColor="darkgray"
-                    />
-                </View>
-                <CustomButton marginTop="20%" onPress={handleRegister} title="REGISTER" />
+                <CustomButton marginTop="20%" onPress={handleLogin} title="LOGIN" />
             </View>
             <View style={styles.bottomView}>
-                <Text style={styles.bottomText}>Already have an account?</Text>
-                <Text onPress={() => router.navigate('LoginPage')} style={styles.registerButton}>
-                    Login
+                <Text style={styles.bottomText}>Don't have an account?</Text>
+                <Text onPress={() => router.navigate('RegistrationPage')} style={styles.registerButton}>
+                    Register
                 </Text>
             </View>
         </View>
@@ -187,4 +164,4 @@ const styles = StyleSheet.create({
     },
 })
 
-export default RegistrationPage
+export default LoginPage
