@@ -1,9 +1,11 @@
-import { React, useState } from 'react'
+import { React, useEffect, useState } from 'react'
 import { StyleSheet, View, Text, TextInput } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import CustomButton from './customButton'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faUser, faHouseSignal, faEnvelope, faKey } from '@fortawesome/free-solid-svg-icons'
+import { showAlert } from '../utility/customAlert.js'
+import { BASE_URL } from '../utility/url.js'
 
 const RegistrationPage = () => {
     const router = useRouter()
@@ -12,8 +14,53 @@ const RegistrationPage = () => {
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
 
+    useEffect(() => {}, [])
+
     const handleRegister = () => {
-        router.navigate('main')
+        if (email === '' || fullName === '' || password === '' || confirmPassword === '') {
+            showAlert('Error', 'Please fill in all fields.')
+            return
+        }
+
+        if (password !== confirmPassword) {
+            showAlert('Error', 'Passwords do not match. Please try again.')
+            setPassword('')
+            setConfirmPassword('')
+            return
+        }
+
+        fetch(BASE_URL + '/addUser', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                full_name: fullName,
+                password: password,
+                complete: true,
+            }),
+        })
+            .then((response) => {
+                if (response.status === 400) {
+                    showAlert('Error', 'User already exists. Please try again.')
+                }
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok')
+                }
+                return response.json()
+            })
+            .then((data) => {
+                console.log(data)
+                showAlert('Success', 'User registered successfully. Please log in.')
+            })
+            .catch((error) => {})
+        router.navigate('LoginPage')
+        setEmail('')
+        setFullName('')
+        setPassword('')
+        setConfirmPassword('')
     }
 
     return (
@@ -88,7 +135,15 @@ const RegistrationPage = () => {
             </View>
             <View style={styles.bottomView}>
                 <Text style={styles.bottomText}>Already have an account?</Text>
-                <Text onPress={() => router.navigate('LoginPage')} style={styles.registerButton}>
+                <Text
+                    onPress={() => {
+                        router.navigate('LoginPage')
+                        setEmail('')
+                        setFullName('')
+                        setPassword('')
+                        setConfirmPassword('')
+                    }}
+                    style={styles.registerButton}>
                     Login
                 </Text>
             </View>
@@ -126,7 +181,12 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 20,
-        color: 'black',
+        color: '#FF7B00',
+        fontWeight: 'bold',
+        shadowColor: 'black',
+        shadowOffset: { width: -1, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 1,
     },
     bottomView: {
         flex: 1,
@@ -171,7 +231,7 @@ const styles = StyleSheet.create({
         marginLeft: '10%',
         color: 'black',
         width: '100%',
-        fontSize: 20,
+        fontSize: 16,
     },
     registerButton: {
         color: 'white',

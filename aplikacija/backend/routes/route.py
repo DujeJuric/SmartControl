@@ -43,26 +43,20 @@ async def login_user(user: User):
 
 
 # GET request to get a single user
-@router.get("/getUser/{user_id}")
-async def get_user(user_id: str):
-    user = users_collection.find_one({"_id": ObjectId(user_id)})
+@router.get("/getUser/{user_email}")
+async def get_user(user_email: str):
+    user = users_collection.find_one({"email": user_email})
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
     return individual_serial_user(user)
 
 # PUT request to update a user
-@router.put("/updateUser/{user_id}")
-async def update_user(user_id: str, user: User):
-
-    user_data = dict(user)
-        
-    existing_user = users_collection.find_one({"_id": ObjectId(user_id)})
-    if existing_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    
-    users_collection.update_one({"_id": ObjectId(user_id)}, {"$set": user_data})
-    updated_user = users_collection.find_one({"_id": ObjectId(user_id)})
-
-    return individual_serial_user(updated_user)
+@router.put("/updateUser/{user_email}")
+async def update_user(user_email: str, user: User):
+    user = dict(user)
+    users_collection.update_one({"email": user_email}, {"$set": user})
+    user = users_collection.find_one({"email": user_email})
+    return individual_serial_user(user)
 
 # DELETE request to delete a user
 @router.delete("/deleteUser/{user_id}")

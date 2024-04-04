@@ -1,17 +1,64 @@
-import { React, useState } from 'react'
+import { React, useState, useContext, useEffect } from 'react'
 import { StyleSheet, View, Text, TextInput } from 'react-native'
 import { Stack, useRouter } from 'expo-router'
 import CustomButton from './customButton'
 import { FontAwesomeIcon } from '@fortawesome/react-native-fontawesome'
 import { faUser, faHouseSignal, faEnvelope, faKey } from '@fortawesome/free-solid-svg-icons'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { BASE_URL } from '../utility/url.js'
+import { showAlert } from '../utility/customAlert.js'
 
 const LoginPage = () => {
     const router = useRouter()
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
 
+    useEffect(() => {}, [])
+
     const handleLogin = () => {
-        router.navigate('main')
+        if (email === '' || password === '') {
+            showAlert('Error', 'Please fill in all fields.')
+            return
+        }
+
+        fetch(BASE_URL + '/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                email: email,
+                password: password,
+                complete: true,
+                full_name: '',
+            }),
+        })
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok')
+                }
+                return response.json()
+            })
+            .then((data) => {
+                storeData(data.token)
+            })
+            .catch((error) => {
+                showAlert('Error', 'Invalid email or password. Please try again.')
+                setEmail('')
+                setPassword('')
+            })
+    }
+
+    const storeData = async (token) => {
+        try {
+            await AsyncStorage.setItem('userToken', token)
+            await AsyncStorage.setItem('email', email)
+            router.navigate('main')
+            setEmail('')
+            setPassword('')
+        } catch (error) {
+            console.error('Error saving user token:', error)
+        }
     }
 
     return (
@@ -65,7 +112,13 @@ const LoginPage = () => {
             </View>
             <View style={styles.bottomView}>
                 <Text style={styles.bottomText}>Don't have an account?</Text>
-                <Text onPress={() => router.navigate('RegistrationPage')} style={styles.registerButton}>
+                <Text
+                    onPress={() => {
+                        router.navigate('RegistrationPage')
+                        setEmail('')
+                        setPassword('')
+                    }}
+                    style={styles.registerButton}>
                     Register
                 </Text>
             </View>
@@ -103,7 +156,12 @@ const styles = StyleSheet.create({
     },
     infoText: {
         fontSize: 20,
-        color: 'black',
+        color: '#FF7B00',
+        fontWeight: 'bold',
+        shadowColor: 'black',
+        shadowOffset: { width: -1, height: 0 },
+        shadowOpacity: 0.3,
+        shadowRadius: 1,
     },
     bottomView: {
         flex: 1,
@@ -148,7 +206,7 @@ const styles = StyleSheet.create({
         marginLeft: '10%',
         color: 'black',
         width: '100%',
-        fontSize: 20,
+        fontSize: 16,
     },
     registerButton: {
         color: 'white',

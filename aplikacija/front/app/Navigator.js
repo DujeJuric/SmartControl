@@ -1,13 +1,11 @@
 import React from 'react'
+import LoginPage from './LoginPage.js'
+import Main from './main.js'
 import { ActivityIndicator, View } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useState, useEffect } from 'react'
-import LoginPage from './LoginPage'
-import Main from './main'
 
-
-
-const Home = () => {
+const Navigator = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [userToken, setUserToken] = useState(null)
 
@@ -40,4 +38,4 @@ const Home = () => {
     return <>{userToken === null ? <LoginPage /> : <Main />}</>
 }
 
-export default Home
+export default Navigator
