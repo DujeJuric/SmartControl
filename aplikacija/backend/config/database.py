@@ -7,3 +7,6 @@ db = client.mobileAppDB
 
 users_collection = db["users"]
 devices_collection = db["devices"]
+routines_collection = db["routines"]
+conditions_collection = db["conditions"]
+actions_collection = db["actions"]

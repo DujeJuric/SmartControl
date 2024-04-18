@@ -11,7 +11,6 @@ class DeviceType(str, Enum):
     thermostat = "thermostat"
     door_lock = "door_lock"
     door_bell = "door_bell"
-    robot = "robot"
     television = "television"
 
 
