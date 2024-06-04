@@ -1,8 +1,8 @@
-import { Stack } from 'expo-router'
+import { Stack } from "expo-router";
+import "react-native-reanimated";
 
 const Layout = () => {
-    
-    return <Stack />
-}
+  return <Stack />;
+};
 
-export default Layout
+export default Layout;

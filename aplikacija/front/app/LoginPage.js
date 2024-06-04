@@ -145,6 +145,7 @@ const LoginPage = () => {
         <Text
           onPress={() => {
             router.navigate("RegistrationPage");
+
             setEmail("");
             setPassword("");
           }}

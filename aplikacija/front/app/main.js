@@ -20,6 +20,9 @@ import History from "./History.js";
 import Routines from "./Routines.js";
 import Devices from "./Devices.js";
 import Center from "./Center.js";
+import * as Location from "expo-location";
+import * as Notifications from "expo-notifications";
+import { showAlert } from "../utility/customAlert.js";
 
 const Main = () => {
   url = BASE_URL;
@@ -50,8 +53,10 @@ const Main = () => {
         }
         const userData = await userResponse.json();
         setUserData(userData);
+        await AsyncStorage.setItem("userId", userData.id.toString());
         setFullName(userData.full_name);
         setLoading(false);
+        registerForPushNotificationsAsync(userData.id);
       } catch (error) {
         console.error("There was a problem with the fetch operation:", error);
         setLoading(false);
@@ -63,6 +68,7 @@ const Main = () => {
 
   const handleLogout = () => {
     removeToken();
+
     router.navigate("LoginPage");
   };
 
@@ -74,6 +80,48 @@ const Main = () => {
     }
   };
 
+  const registerForPushNotificationsAsync = async (userId) => {
+    try {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        alert("Failed to get push token for push notification!");
+        return;
+      }
+      const projectId = "1aced475-af58-4297-9e53-cc5b87d1c74e";
+      const token = (await Notifications.getExpoPushTokenAsync({ projectId }))
+        .data;
+      console.log("Push token: ", token);
+      updateUserToken(token, userId);
+    } catch (error) {
+      console.error("There was an error!", error);
+    }
+  };
+
+  const updateUserToken = async (token, userId) => {
+    const url = BASE_URL;
+    try {
+      const response = await fetch(url + "/changeDeviceToken/" + userId, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          context_user_id: userId,
+          context_temperature: 0.0,
+          context_location_latitude: "",
+          context_location_longitude: "",
+          context_device_id: "",
+          context_token: token,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+    } catch (error) {
+      console.error("There was an error!", error);
+    }
+  };
+
   const renderContent = () => {
     switch (selectedIcon) {
       case 1:
@@ -81,11 +129,11 @@ const Main = () => {
       case 2:
         return <Routines userData={userData} />;
       case 3:
-        return <Center />;
+        return <Center userData={userData} />;
       case 4:
         return <History />;
       case 5:
-        return <Profile onLogout={handleLogout} />;
+        return <Profile onLogout={handleLogout} userData={userData} />;
       default:
         return null;
     }
@@ -257,7 +305,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: "100%",
     justifyContent: "center",
-    paddingVertical: "40%",
   },
   bottomView: {
     flex: 1,

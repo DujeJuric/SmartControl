@@ -29,7 +29,9 @@ const RegistrationPage = () => {
   const passwordInputRef = useRef(null);
   const confirmPasswordInputRef = useRef(null);
 
-  useEffect(() => {}, []);
+  useEffect(() => {
+    console.log("Registration Page");
+  }, []);
 
   const handleRegister = () => {
     if (
@@ -71,11 +73,11 @@ const RegistrationPage = () => {
         return response.json();
       })
       .then((data) => {
-        console.log(data);
         showAlert("Success", "User registered successfully. Please log in.");
       })
       .catch((error) => {});
     router.navigate("LoginPage");
+
     setEmail("");
     setFullName("");
     setPassword("");
@@ -193,6 +195,7 @@ const RegistrationPage = () => {
         <Text
           onPress={() => {
             router.navigate("LoginPage");
+
             setEmail("");
             setFullName("");
             setPassword("");

@@ -1,9 +1,14 @@
 from fastapi import FastAPI
 from routes.route import router
 from fastapi.middleware.cors import CORSMiddleware
+from routineLogic import checkTimeCondition
+from apscheduler.schedulers.background import BackgroundScheduler
 import uvicorn
+from contextlib import asynccontextmanager
 
 app = FastAPI()
+
+scheduler = BackgroundScheduler()
 
 app.include_router(router)
 
@@ -22,6 +27,21 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start the scheduler
+    scheduler.add_job(
+        checkTimeCondition,
+        'interval',
+        seconds=3,
+        id="checkTimeCondition"
+    )
+    scheduler.start()
+    yield
+    scheduler.shutdown()
+
+app.router.lifespan_context = lifespan
 
 if __name__ == "__main__":
     # Specify the host IP address to bind to
