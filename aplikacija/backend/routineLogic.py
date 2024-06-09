@@ -1,7 +1,7 @@
 import pytz
 from datetime import datetime
 from schema.schemas import individual_serial_condition, multiple_serial_conditions
-from config.database import conditions_collection, contexts_collection, routines_collection, devices_collection, actions_collection, users_collection, contexts_collection
+from config.database import conditions_collection, contexts_collection, routines_collection, devices_collection, actions_collection, users_collection, contexts_collection, historyLogs_collection
 from bson.objectid import ObjectId
 import math
 import requests
@@ -211,12 +211,25 @@ def activateRoutine(routineId):
             body = action["action_notification_body"]
             sendNotification(userToken, title, body)
 
-        
         elif actionType == "activate_routine":
-            print("Activating routine")
+            activateRoutineId = action["action_activate_routine_id"]
+            activateRoutine(activateRoutineId)
 
         elif actionType == "control_device":
-            print("Controlling device")
+            deviceId = action["action_device_id"]
+            device = devices_collection.find_one({"_id": ObjectId(deviceId)})
+            deviceEntityId = device["device_entity_id"]
+            deviceType = device["device_type"]
+            controlType = action["action_device_control_type"]
+            controlDevice(deviceEntityId, deviceType, controlType)
+            
+        historyLog = {
+            "log_text": f"Routine {routine['routine_name']} has been activated",
+            "log_user_id": userId,
+            "log_date": datetime.now(pytz.timezone('Europe/Zagreb')).strftime("%Y-%m-%d %H:%M:%S")
+        }
+        historyLogs_collection.insert_one(historyLog)
+
 
 
 
@@ -240,6 +253,34 @@ def sendNotification(token, title, body):
     }
     response = requests.post(EXPO_PUSH_URL, headers=headers, json=payload)
     return response.status_code
+
+HOME_ASSISTANT_URL = "http://10.19.4.148:8123/api"
+TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJmY2RmNGI0ZmY5NjU0N2VmYThjODIwYzQzNGU5MDAyOSIsImlhdCI6MTcxNjk3MDA5MiwiZXhwIjoyMDMyMzMwMDkyfQ.l9aTM7mrYrtw7gTawbabtTK6u1aYgEauMlF2FFl5Owo";
+
+def controlDevice(deviceEntityId, deviceType, controlType):
+    
+    headers = {
+        'Authorization': 'Bearer ' + TOKEN,
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        "entity_id": deviceEntityId
+    }
+    if controlType == "Turn on":
+        try:
+            response = requests.post(HOME_ASSISTANT_URL + "/services/" + deviceType + "/turn_on", headers=headers, json=payload)
+        except requests.exceptions.RequestException as e:
+            print(e)
+        
+    elif controlType == "Turn off":
+        try:
+            response = requests.post(HOME_ASSISTANT_URL + "/services/" + deviceType + "/turn_off", headers=headers, json=payload)
+        except requests.exceptions.RequestException as e:
+            print(e)
+    else :
+        print("Invalid control type")
+    
+
 
 
 

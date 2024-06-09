@@ -8,12 +8,12 @@ class Action(BaseModel):
 
 class ControlDeviceAction(Action, BaseModel):
     action_device_id: str
-    action_device_status: bool
+    action_device_control_type: str
 
     def __init__(self, **data):
         super().__init__(**data)
         self.action_device_id = data.get('action_device_id')
-        self.action_device_status = data.get('action_device_status')
+        self.action_device_control_type = data.get('action_device_control_type')
 
 class SendNotificationAction(Action, BaseModel):
     action_notification_title: str

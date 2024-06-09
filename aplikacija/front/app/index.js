@@ -10,13 +10,12 @@ import * as Notifications from "expo-notifications";
 import { showAlert } from "../utility/customAlert.js";
 import * as Location from "expo-location";
 import { BASE_URL } from "../utility/url.js";
+import { getDevices } from "./HomeAssitantService";
+import { ColorSpace } from "react-native-reanimated";
+import { isEqual } from "lodash";
 
 LogBox.ignoreLogs([
   "FontAwesomeIcon: Support for defaultProps will be removed from function components in a future major release. Use JavaScript default parameters instead.",
-]);
-LogBox.ignoreLogs([
-  "There was a problem with the fetch operation:",
-  "There was an error! [TypeError: Network request failed]",
 ]);
 
 LogBox.ignoreAllLogs();
@@ -77,20 +76,19 @@ const Home = () => {
 
     const updateLocation = async () => {
       userDataId = await AsyncStorage.getItem("userId");
-      console.log("User Data ID: ", userDataId);
+
       if (userDataId === null) {
         return;
       }
       let loc = await Location.getCurrentPositionAsync({});
       const latitude = loc.coords.latitude;
       const longitude = loc.coords.longitude;
-      console.log("Latitude: ", latitude);
-      console.log("Longitude: ", longitude);
 
       await AsyncStorage.setItem("latitude", latitude.toString());
       await AsyncStorage.setItem("longitude", longitude.toString());
 
       updateTemperature(userDataId, latitude, longitude);
+      updateDevices(userDataId);
 
       const url = BASE_URL;
       try {
@@ -126,7 +124,7 @@ const Home = () => {
         }
         const weatherData = await response.json();
         const temperature = weatherData.current.temp_c;
-        console.log("Temperature: ", temperature);
+
         await AsyncStorage.setItem("temperature", temperature.toString());
 
         const url = BASE_URL;
@@ -149,6 +147,127 @@ const Home = () => {
         );
       } catch (error) {
         console.error("Temp error!", error);
+      }
+    };
+
+    const updateDevices = async (userDataId) => {
+      const storedDevices = await getStoredDevices(userDataId);
+      const devices = await getDevices();
+      addDevices(storedDevices, devices, userDataId);
+    };
+
+    const getStoredDevices = async () => {
+      const url = BASE_URL;
+      try {
+        const response = await fetch(url + "/getUserDevices/" + userId, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const devicesData = await response.json();
+
+        return devicesData;
+      } catch (error) {
+        console.error("There was an error!", error);
+      }
+    };
+
+    const addDevices = async (storedDevices, devices, userDataId) => {
+      const storedEntityIds = storedDevices.map(
+        (device) => device.device_entity_id
+      );
+
+      const presentEntityIds = [];
+
+      for (i = 0; i < devices.length; i++) {
+        const body = {
+          device_name: devices[i].attributes.friendly_name,
+          device_type: devices[i].entity_id.split(".")[0],
+          device_state: devices[i].state,
+          device_attributes: devices[i].attributes,
+          device_last_changed: devices[i].last_changed,
+          device_last_updated: devices[i].last_updated,
+          device_context_id: devices[i].context.id,
+          device_entity_id: devices[i].entity_id,
+          device_user_id: userDataId,
+        };
+
+        if (storedEntityIds.includes(body.device_entity_id)) {
+          const storedDevice =
+            storedDevices[storedEntityIds.indexOf(body.device_entity_id)];
+          presentEntityIds.push(body.device_entity_id);
+
+          if (
+            storedDevice.device_state !== body.device_state ||
+            !isEqual(storedDevice.device_attributes, body.device_attributes) ||
+            storedDevice.device_last_changed !== body.device_last_changed ||
+            storedDevice.device_last_updated !== body.device_last_updated ||
+            storedDevice.device_context_id !== body.device_context_id
+          ) {
+            console.log("Updating device in database " + body.device_name);
+            updateDevice(storedDevice, body);
+          }
+        }
+      }
+
+      storedDevices.forEach((device) => {
+        if (!presentEntityIds.includes(device.device_entity_id)) {
+          console.log("Deleting device from database " + device.device_name);
+          deleteDevice(device.id);
+        }
+      });
+    };
+
+    const updateDevice = async (storedDevice, newDevice) => {
+      const url = BASE_URL;
+
+      body = {
+        device_name: storedDevice.device_name,
+        device_type: storedDevice.device_type,
+        device_state: newDevice.device_state,
+        device_attributes: newDevice.device_attributes,
+        device_last_changed: newDevice.device_last_changed,
+        device_last_updated: newDevice.device_last_updated,
+        device_context_id: newDevice.device_context_id,
+        device_entity_id: storedDevice.device_entity_id,
+        device_user_id: storedDevice.device_user_id,
+      };
+
+      try {
+        const response = await fetch(url + "/updateDevice/" + storedDevice.id, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(body),
+        });
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+      } catch (error) {
+        console.error("There was an error!", error);
+      }
+    };
+
+    const deleteDevice = async (id) => {
+      const url = BASE_URL;
+
+      try {
+        const response = await fetch(url + "/deleteDevice/" + id, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+      } catch (error) {
+        console.error("There was an error!", error);
       }
     };
 

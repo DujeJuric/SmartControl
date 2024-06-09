@@ -5,6 +5,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  Image,
 } from "react-native";
 import { getDevices } from "./HomeAssitantService";
 import { useState } from "react";
@@ -16,6 +17,7 @@ import {
   faCaretRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { ActivityIndicator } from "react-native";
+import { isEqual } from "lodash";
 
 const Center = ({ userData }) => {
   const [storedDevices, setStoredDevices] = useState([]);
@@ -85,8 +87,9 @@ const Center = ({ userData }) => {
   const getStoredDevices = async () => {
     setLoading(true);
     const url = BASE_URL;
+    userId = userData.id;
     try {
-      const response = await fetch(url + "/getDevices", {
+      const response = await fetch(url + "/getUserDevices/" + userId, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -104,14 +107,16 @@ const Center = ({ userData }) => {
   };
 
   const addDevices = async (devices) => {
-    const storedContextIds = storedDevices.map(
-      (device) => device.device_context_id
+    const storedEntityIds = storedDevices.map(
+      (device) => device.device_entity_id
     );
+
+    const presentEntityIds = [];
 
     setLoading(true);
 
     for (i = 0; i < devices.length; i++) {
-      body = {
+      const body = {
         device_name: devices[i].attributes.friendly_name,
         device_type: devices[i].entity_id.split(".")[0],
         device_state: devices[i].state,
@@ -122,9 +127,10 @@ const Center = ({ userData }) => {
         device_entity_id: devices[i].entity_id,
         device_user_id: userData.id,
       };
-      console.log(body.device_name);
 
-      if (!storedContextIds.includes(body.device_context_id)) {
+      if (!storedEntityIds.includes(body.device_entity_id)) {
+        console.log("Adding device to database " + body.device_name);
+        presentEntityIds.push(body.device_entity_id);
         try {
           const response = await fetch(url + "/addDevice", {
             method: "POST",
@@ -140,10 +146,81 @@ const Center = ({ userData }) => {
         } catch (error) {
           console.error("There was an error!", error);
         }
+      } else {
+        const storedDevice =
+          storedDevices[storedEntityIds.indexOf(body.device_entity_id)];
+        presentEntityIds.push(body.device_entity_id);
+        if (
+          storedDevice.device_state !== body.device_state ||
+          !isEqual(storedDevice.device_attributes, body.device_attributes) ||
+          storedDevice.device_last_changed !== body.device_last_changed ||
+          storedDevice.device_last_updated !== body.device_last_updated ||
+          storedDevice.device_context_id !== body.device_context_id
+        ) {
+          console.log("Updating device in database " + body.device_name);
+          updateDevice(storedDevice, body);
+        }
       }
     }
+
+    storedDevices.forEach((device) => {
+      if (!presentEntityIds.includes(device.device_entity_id)) {
+        console.log("Deleting device from database " + device.device_name);
+        deleteDevice(device.id);
+      }
+    });
+
     getStoredDevices();
     setLoading(false);
+  };
+
+  const updateDevice = async (storedDevice, newDevice) => {
+    const url = BASE_URL;
+
+    body = {
+      device_name: storedDevice.device_name,
+      device_type: storedDevice.device_type,
+      device_state: newDevice.device_state,
+      device_attributes: newDevice.device_attributes,
+      device_last_changed: newDevice.device_last_changed,
+      device_last_updated: newDevice.device_last_updated,
+      device_context_id: newDevice.device_context_id,
+      device_entity_id: storedDevice.device_entity_id,
+      device_user_id: storedDevice.device_user_id,
+    };
+
+    try {
+      const response = await fetch(url + "/updateDevice/" + storedDevice.id, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+    } catch (error) {
+      console.error("There was an error!", error);
+    }
+  };
+
+  const deleteDevice = async (id) => {
+    const url = BASE_URL;
+
+    try {
+      const response = await fetch(url + "/deleteDevice/" + id, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      if (!response.ok) {
+        throw new Error("Network response was not ok");
+      }
+    } catch (error) {
+      console.error("There was an error!", error);
+    }
   };
 
   const moveRoutineLeft = () => {
@@ -189,9 +266,13 @@ const Center = ({ userData }) => {
 
   return (
     <View style={styles.container}>
+      <Image
+        style={styles.image}
+        source={require("../images/MicrosoftTeams-image.png")}
+      />
       <TouchableOpacity onPress={() => fetchData()}>
         <View style={styles.buttonView}>
-          <Text style={styles.buttonText}>Connect a device</Text>
+          <Text style={styles.buttonText}>Connect to Home Assistant</Text>
         </View>
       </TouchableOpacity>
       <Text style={styles.runText}>Run your manual routines</Text>
@@ -255,7 +336,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "white",
     height: "fit-content",
-    marginTop: 140,
+    marginTop: 20,
   },
   buttonView: {
     backgroundColor: "#FF7B00",
@@ -270,6 +351,7 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 20,
     fontWeight: "bold",
+    textAlign: "center",
   },
   routineList: {
     width: "65%",
@@ -283,7 +365,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 10,
-
     marginBottom: 20,
     borderRadius: 30,
   },
@@ -291,7 +372,7 @@ const styles = StyleSheet.create({
     color: "black",
     fontSize: 20,
     fontWeight: "bold",
-    marginTop: 90,
+    marginTop: 30,
     marginBottom: 10,
   },
   routineInfo: {
@@ -331,6 +412,12 @@ const styles = StyleSheet.create({
   },
   leftRightIcons: {
     marginTop: 6,
+  },
+  image: {
+    width: 150,
+    height: 120,
+    marginBottom: 30,
+    resizeMode: "contain",
   },
 });
 

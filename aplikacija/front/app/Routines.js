@@ -26,7 +26,11 @@ import { Picker } from "@react-native-picker/picker";
 
 const Routines = ({ userData }) => {
   const options = ["Time", "Location", "Temperature"];
-  const actionsOptions = ["Activate_routine", "Send_notification"];
+  const actionsOptions = [
+    "Activate_routine",
+    "Send_notification",
+    "Control_device",
+  ];
   const [alreadyAddedOptions, setAlreadyAddedOptions] = useState([]);
   const [alreadyAddedActionOptions, setAlreadyAddedActionOptions] = useState(
     []

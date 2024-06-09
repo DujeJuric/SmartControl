@@ -13,6 +13,7 @@ import {
   faEnvelope,
   faPlay,
   faGear,
+  faWrench,
 } from "@fortawesome/free-solid-svg-icons";
 
 const BaseComponent = () => {
@@ -47,7 +48,7 @@ const SendNotification = ({
               style={styles.baseIcon}
               size={20}
             />
-            <Text style={styles.titleText}>Send_notification </Text>
+            <Text style={styles.titleText}>Send notification </Text>
           </View>
           <FontAwesomeIcon icon={faGear} size={20} style={styles.editIcon} />
         </View>
@@ -75,7 +76,39 @@ const ActivateRoutine = ({
         <View style={styles.view}>
           <View style={styles.titleView}>
             <FontAwesomeIcon icon={faPlay} style={styles.baseIcon} size={20} />
-            <Text style={styles.titleText}>Activate_routine</Text>
+            <Text style={styles.titleText}>Activate routine</Text>
+          </View>
+          <FontAwesomeIcon icon={faGear} size={20} style={styles.editIcon} />
+        </View>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const ControlDevice = ({
+  action,
+  setNewAction,
+  openFormModal,
+  setIsActionEdit,
+  setIsActionForm,
+}) => {
+  const edit = () => {
+    setNewAction(action);
+    setIsActionEdit(true);
+    setIsActionForm(true);
+    openFormModal();
+  };
+  return (
+    <View>
+      <TouchableOpacity onPress={edit}>
+        <View style={styles.view}>
+          <View style={styles.titleView}>
+            <FontAwesomeIcon
+              icon={faWrench}
+              style={styles.baseIcon}
+              size={20}
+            />
+            <Text style={styles.titleText}>Control device</Text>
           </View>
           <FontAwesomeIcon icon={faGear} size={20} style={styles.editIcon} />
         </View>
@@ -108,6 +141,16 @@ const CustomActionComponent = ({
     case "activate_routine":
       return (
         <ActivateRoutine
+          action={action}
+          setNewAction={setNewAction}
+          openFormModal={openFormModal}
+          setIsActionEdit={setIsActionEdit}
+          setIsActionForm={setIsActionForm}
+        />
+      );
+    case "control_device":
+      return (
+        <ControlDevice
           action={action}
           setNewAction={setNewAction}
           openFormModal={openFormModal}

@@ -5,10 +5,11 @@ from models.routine import Routine
 from models.conditionType import ConditionType
 from models.actionType import ActionType
 from models.context import Context
+from models.historyLog import HistoryLog
 from models.condition import Condition, TimeCondition, LocationCondition, WeatherCondition, TemperatureCondition, DeviceStatusCondition, ManualCondition
 from models.action import Action, ControlDeviceAction, SendNotificationAction, ActivateRoutineAction
-from config.database import users_collection, devices_collection, routines_collection, conditions_collection, actions_collection, contexts_collection
-from schema.schemas import individual_serial_user, individual_serial_device, multiple_serial_users, multiple_serial_devices, individual_serial_routine, multiple_serial_routines, individual_serial_condition, multiple_serial_conditions, individual_serial_action, multiple_serial_actions, individual_serial_context, multiple_serial_contexts
+from config.database import users_collection, devices_collection, routines_collection, conditions_collection, actions_collection, contexts_collection, historyLogs_collection
+from schema.schemas import individual_serial_user, individual_serial_device, multiple_serial_users, multiple_serial_devices, individual_serial_routine, multiple_serial_routines, individual_serial_condition, multiple_serial_conditions, individual_serial_action, multiple_serial_actions, individual_serial_context, multiple_serial_contexts, individual_serial_historyLog, multiple_serial_historyLogs
 from bson import ObjectId
 from fastapi import HTTPException
 from auth import AuthHandler
@@ -63,11 +64,12 @@ async def get_user(user_email: str):
     return individual_serial_user(user)
 
 # PUT request to update a user
-@router.put("/updateUser/{user_email}")
-async def update_user(user_email: str, user: User):
+@router.put("/updateUser/{user_id}")
+async def update_user(user_id: str, user: User):
     user = dict(user)
-    users_collection.update_one({"email": user_email}, {"$set": user})
-    user = users_collection.find_one({"email": user_email})
+    #update only email and full name
+    users_collection.update_one({"_id": ObjectId(user_id)}, {"$set": {"email": user["email"], "full_name": user["full_name"]}})
+    user = users_collection.find_one({"_id": ObjectId(user_id)})
     return individual_serial_user(user)
 
 # DELETE request to delete a user
@@ -78,7 +80,6 @@ async def delete_user(user_id: str):
     return individual_serial_user(user)
 
 
-
 ###DEVICE ROUTES
 
 # GET request to get all devices
@@ -86,6 +87,14 @@ async def delete_user(user_id: str):
 async def get_devices():
     devices = devices_collection.find()
     return multiple_serial_devices(devices)
+
+# GET request to get a single device
+@router.get("/getDevice/{device_id}")
+async def get_device(device_id: str):
+    device = devices_collection.find_one({"_id": ObjectId(device_id)})
+    if device is None:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return individual_serial_device(device)
 
 # POST request to create a new device
 @router.post("/addDevice")
@@ -282,7 +291,7 @@ async def create_context(context: Context):
 
 
 
-# Notifcations
+### Notifcations
 
 # POST request to send a notification
 EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send"
@@ -302,3 +311,26 @@ async def send_notification(expo_push_token: str, title: str, message: str):
     async with httpx.AsyncClient() as client:
         response = await client.post(EXPO_PUSH_URL, headers=headers, json=payload)
         return response.json()
+    
+### HISTORY LOGS
+
+# POST request to create a new history log
+@router.post("/addHistoryLog")
+async def create_history_log(historyLog: HistoryLog):
+    historyLog = dict(historyLog)
+    historyLogs_collection.insert_one(historyLog)
+    return individual_serial_historyLog(historyLog)
+
+# GET request to get user history logs
+@router.get("/getUserHistoryLogs/{user_id}")
+async def get_user_history_logs(user_id: str):
+    historyLogs = historyLogs_collection.find({"log_user_id": user_id})
+    return multiple_serial_historyLogs(historyLogs)
+
+# DELETE request to delete a history log
+@router.delete("/deleteHistoryLog/{historyLog_id}")
+async def delete_history_log(historyLog_id: str):
+    historyLog = historyLogs_collection.find_one({"_id": ObjectId(historyLog_id)})
+    historyLogs_collection.delete_one({"_id": ObjectId(historyLog_id)})
+    return individual_serial_historyLog(historyLog)
+

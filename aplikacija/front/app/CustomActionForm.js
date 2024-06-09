@@ -10,13 +10,14 @@ import { useState } from "react";
 import { Picker } from "@react-native-picker/picker";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import {
-  faCirclePlus,
+  faPlay,
   faClock,
-  faGear,
-  faLocationDot,
-  faTemperatureThreeQuarters,
   faEnvelope,
+  faWrench,
 } from "@fortawesome/free-solid-svg-icons";
+import { BASE_URL } from "../utility/url";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { set } from "lodash";
 
 const BaseForm = () => {
   return (
@@ -82,6 +83,7 @@ const SendNotification = ({ setNewAction, action }) => {
 const ActivateRoutine = ({ setNewAction, action }) => {
   const routId = action.action_routine_id ? action.action_routine_id : "";
   const [routineId, setRoutineId] = useState(routId);
+  const [routines, setRoutines] = useState([]);
 
   useEffect(() => {
     const newAction = {
@@ -93,21 +95,148 @@ const ActivateRoutine = ({ setNewAction, action }) => {
     setNewAction(newAction);
   }, [routineId]);
 
+  useEffect(() => {
+    const fetchRoutines = async () => {
+      userId = await AsyncStorage.getItem("userId");
+      try {
+        const routinesResponse = await fetch(
+          BASE_URL + "/getUserRoutines/" + userId
+        );
+        if (!routinesResponse.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const routinesData = await routinesResponse.json();
+        setRoutines(routinesData);
+        setRoutineId(routinesData[0].id);
+      } catch (error) {
+        console.error("There was an error!", error);
+      }
+    };
+    fetchRoutines();
+  }, []);
+
   return (
-    <View style={styles.notificationViewView}>
+    <View style={styles.notificationView}>
       <View style={styles.titleView}>
-        <FontAwesomeIcon icon={faClock} style={styles.baseIcon} size={30} />
+        <FontAwesomeIcon icon={faPlay} style={styles.baseIcon} size={30} />
         <Text style={styles.title}>Activate Routine</Text>
       </View>
+      <Text style={styles.typeTextRoutine}>Select the routine:</Text>
+      <View style={styles.viewPicker}>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={routineId}
+            style={styles.picker}
+            onValueChange={(itemValue) => setRoutineId(itemValue)}
+          >
+            {routines.map((routine) => (
+              <Picker.Item
+                label={routine.routine_name}
+                value={routine.id}
+                key={routine.id}
+              />
+            ))}
+          </Picker>
+        </View>
+      </View>
+    </View>
+  );
+};
 
-      <View style={styles.inputField}>
-        <TextInput
-          placeholder="Enter a routine id"
-          onChangeText={setRoutineId}
-          style={styles.inputText}
-          value={routineId}
-          placeholderTextColor={"darkgray"}
-        />
+const ControlDevice = ({ setNewAction, action }) => {
+  const devId = action.action_device_id ? action.action_device_id : "";
+  const [deviceId, setDeviceId] = useState(devId);
+
+  const cntrType = action.action_device_control_type
+    ? action.action_device_control_type
+    : "Turn on";
+  const [controlType, setControlType] = useState(cntrType);
+
+  const [devices, setDevices] = useState([]);
+
+  useEffect(() => {
+    const newAction = {
+      id: action.id,
+      action_type: "control_device",
+      action_device_id: deviceId,
+      action_device_control_type: controlType,
+    };
+    setNewAction(newAction);
+  }, [deviceId, controlType]);
+
+  useEffect(() => {
+    const fetchDevices = async () => {
+      userId = await AsyncStorage.getItem("userId");
+      try {
+        const devicesResponse = await fetch(
+          BASE_URL + "/getUserDevices/" + userId
+        );
+        if (!devicesResponse.ok) {
+          throw new Error("Network response was not ok");
+        }
+        const devicesData = await devicesResponse.json();
+        const filteredDevices = devicesData.filter(
+          (device) =>
+            device.device_state == "on" || device.device_state == "off"
+        );
+        setDevices(filteredDevices);
+        setDeviceId(filteredDevices[0].id);
+      } catch (error) {
+        console.error("There was an error!", error);
+      }
+    };
+    fetchDevices();
+  }, []);
+
+  return (
+    <View style={styles.controlView}>
+      <View style={styles.titleView}>
+        <FontAwesomeIcon icon={faWrench} style={styles.baseIcon} size={30} />
+        <Text style={styles.title}>Control Device</Text>
+      </View>
+      <View style={styles.controlOptionView}>
+        <Text style={styles.typeText}>Choose a control option: </Text>
+        <View style={styles.typeValueView}>
+          <TouchableOpacity
+            style={
+              controlType == "Turn on"
+                ? styles.typeOpacitySelected
+                : styles.typeOpacity
+            }
+            onPress={() => setControlType("Turn on")}
+          >
+            <Text style={styles.typeTextValue}>Turn on</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={
+              controlType == "Turn off"
+                ? styles.typeOpacitySelected
+                : styles.typeOpacity
+            }
+            onPress={() => setControlType("Turn off")}
+          >
+            <Text style={styles.typeTextValue}>Turn off</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Text style={styles.typeText}>Select the device:</Text>
+      <View style={styles.viewPicker}>
+        <View style={styles.pickerContainer}>
+          <Picker
+            selectedValue={deviceId}
+            style={styles.picker}
+            onValueChange={(itemValue) => setDeviceId(itemValue)}
+          >
+            {devices.map((device) => (
+              <Picker.Item
+                label={device.device_name}
+                value={device.id}
+                key={device.id}
+              />
+            ))}
+          </Picker>
+        </View>
       </View>
     </View>
   );
@@ -121,7 +250,8 @@ const CustomActionForm = ({ type, setNewAction, action }) => {
       return <SendNotification setNewAction={setNewAction} action={action} />;
     case "activate_routine":
       return <ActivateRoutine setNewAction={setNewAction} action={action} />;
-
+    case "control_device":
+      return <ControlDevice setNewAction={setNewAction} action={action} />;
     default:
       return null;
   }
@@ -201,6 +331,11 @@ const styles = StyleSheet.create({
     marginTop: 150,
     flex: 1,
   },
+  controlView: {
+    flex: 1,
+    justifyContent: "center",
+    alignContent: "center",
+  },
   inputField: {
     flexDirection: "row",
     alignItems: "center",
@@ -229,6 +364,87 @@ const styles = StyleSheet.create({
     color: "black",
     marginTop: 10,
     marginLeft: "10%",
+  },
+  typeText: {
+    fontSize: 14,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  typeTextRoutine: {
+    fontSize: 14,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginTop: 50,
+  },
+  typeValueView: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderColor: "white",
+    borderWidth: 1,
+    borderRadius: 5,
+    shadowColor: "black",
+
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    backgroundColor: "white",
+    margin: 8,
+    padding: 5,
+  },
+  typeOpacity: {
+    backgroundColor: "white",
+    borderColor: "white",
+    borderWidth: 1,
+    borderRadius: 5,
+    shadowColor: "black",
+
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+
+    padding: 10,
+    margin: 5,
+    borderRadius: 5,
+  },
+  typeOpacitySelected: {
+    backgroundColor: "#FF7B00",
+    borderColor: "#FF7B00",
+    borderWidth: 1,
+    borderRadius: 5,
+    shadowColor: "black",
+
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    padding: 10,
+    margin: 5,
+    borderRadius: 5,
+  },
+  typeTextValue: {
+    fontSize: 14,
+  },
+  controlOptionView: {
+    marginVertical: 20,
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  viewPicker: {
+    borderColor: "white",
+    borderWidth: 1,
+    borderRadius: 5,
+    shadowColor: "black",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    backgroundColor: "white",
+    margin: 10,
+    padding: 5,
+  },
+  pickerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  picker: {
+    width: 250,
   },
 });
 

@@ -131,7 +131,7 @@ const Main = () => {
       case 3:
         return <Center userData={userData} />;
       case 4:
-        return <History />;
+        return <History userData={userData} />;
       case 5:
         return <Profile onLogout={handleLogout} userData={userData} />;
       default:

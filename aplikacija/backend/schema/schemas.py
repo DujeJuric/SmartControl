@@ -48,7 +48,7 @@ def individual_serial_action(action: Action, type) -> dict:
             "action_type": action["action_type"],
             "action_routine_id": action["action_routine_id"],
             "action_device_id": action["action_device_id"],
-            "action_device_status": action["action_device_status"]
+            "action_device_control_type": action["action_device_control_type"]
         }
     elif type == ActionType.send_notification:
         return {
@@ -152,6 +152,18 @@ def individual_serial_context(context) -> dict:
 def multiple_serial_contexts(contexts) -> list:
 
     return [individual_serial_context(context) for context in contexts]
+
+def individual_serial_historyLog(historyLog) -> dict:
+    return {
+        "id": str(historyLog["_id"]),
+        "log_text": historyLog["log_text"],
+        "log_user_id": historyLog["log_user_id"],
+        "log_date": historyLog["log_date"]
+    }
+
+def multiple_serial_historyLogs(historyLogs) -> list:
+    return [individual_serial_historyLog(historyLog) for historyLog in historyLogs]
+
 
 
 
