@@ -259,6 +259,7 @@ const Center = ({ userData }) => {
       if (!response.ok) {
         throw new Error("Network response was not ok");
       }
+      fetchData();
     } catch (error) {
       console.error("There was an error!", error);
     }
@@ -399,7 +400,7 @@ const styles = StyleSheet.create({
   },
   routineText: {
     fontSize: 15,
-    maxWidth: 200,
+    width: "80%",
     paddingRight: "10%",
     color: "black",
     fontWeight: "bold",

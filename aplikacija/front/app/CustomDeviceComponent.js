@@ -66,6 +66,7 @@ const Light = ({ device, closeEditDevice }) => {
     };
 
     const data = await turnOffDevice(body, "light", device.id);
+    closeEditDevice();
   };
 
   const edit = async () => {
